@@ -1,14 +1,12 @@
 mapPheWAStoExclusions <-
-  function(phewas.codes, ids=NA) {
-    if(is.na(ids)[1]) {
-      input = data.frame(exclusion_criteria=phewas.codes)
+  function(phewas.codes, ids) {
+    if(missing(ids)) {
+      input = tbl_df(data.frame(id=0,exclusion_criteria=phewas.codes,stringsAsFactors = FALSE))
     }
     else {
-      input = data.frame(id=ids, exclusion_criteria=phewas.codes)
+      input = tbl_df(data.frame(id=ids, exclusion_criteria=phewas.codes,stringsAsFactors = FALSE))
     }
-    output = merge(input,phewas_exclude)
-    output = output[,!(names(output)=="exclusion_criteria")]
-    names(output)[names(output)=="code"]="exclusion"
-    output=unique(output)
+    output = inner_join(input,phewas_exclude)
+    output = output %>% transmute(id, exclusion=code) %>% distinct()
     output
   }

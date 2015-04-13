@@ -12,8 +12,8 @@ This package provides the tools necessary to perform a PheWAS analysis.
 \tabular{ll}{
 Package: \tab PheWAS\cr
 Type: \tab Package\cr
-Version: \tab 0.9.4.1\cr
-Date: \tab 2014-11-25\cr
+Version: \tab 0.9.6-1\cr
+Date: \tab 2015-04-13\cr
 License: \tab GPL3\cr
 }
 With the package installed, the command \code{vignette("PheWAS-package")} will display the vignette
@@ -55,8 +55,9 @@ The original PheWAS manuscript can be found here: http://www.ncbi.nlm.nih.gov/pu
 \code{\link[PheWAS:phewasMeta]{phewasMeta}}
 }
 \examples{
+\donttest{
 #Install the recommended packages, if necessary
-#install.packages(c("snowfall","shiny","MASS","SparseM"))
+#install.packages(c("snowfall","shiny","MASS","meta"))
 #Load the PheWAS package
 library(PheWAS)
 #Set the random seed so it is replicable
@@ -68,7 +69,7 @@ id.icd9.count=ex$id.icd9.count
 genotypes=ex$genotypes
 #Create the PheWAS code table- translates the icd9s, adds 
 #exclusions, and reshapes to a wide format
-phenotypes=createPhewasTable(id.icd9.count,fast=TRUE)
+phenotypes=createPhewasTable(id.icd9.count)
 #Run the PheWAS
 results=phewas(phenotypes,genotypes,cores=1,
   significance.threshold=c("bonferroni"))
@@ -81,5 +82,6 @@ results_d=addPhewasDescription(results)
 results_d[results_d$bonferroni&!is.na(results_d$p),]
 #List the top 10 results
 results_d[order(results_d$p)[1:10],]
+}
 }
 

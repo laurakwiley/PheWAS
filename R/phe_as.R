@@ -1,5 +1,5 @@
 phe_as <-
-function(phe.gen, additive.genotypes=T,min.records=20,return.models=F, my.data, my.covariates) {
+function(phe.gen, additive.genotypes=T,min.records=20,return.models=F,confint.level=NA, my.data, my.covariates) {
   if(!missing(my.data)) data=my.data
   if(!missing(my.covariates)) covariates=my.covariates
   #Retrieve the targets for this loop
@@ -21,8 +21,9 @@ function(phe.gen, additive.genotypes=T,min.records=20,return.models=F, my.data, 
   #Exclude the exclusions for the target phenotype
   d=d[!is.na(d[,phe]),]
   n_no_snp=sum(is.na(d[,gen]))
-  d=d[!is.na(d[,gen]),]
-  n_total=dim(d)[1]
+  #Exclude rows with missing data
+  d=na.omit(d)
+  n_total=nrow(d)
   n_cases=NA_integer_
   n_controls=NA_integer_
   allele_freq=NA_real_
@@ -34,12 +35,16 @@ function(phe.gen, additive.genotypes=T,min.records=20,return.models=F, my.data, 
   type=NA_character_
   note=""
   model=NA
-  if(length(unique(na.omit(d[,phe])))<=1 | length(unique(na.omit(d[,gen]))) <=1) {
+  if(n_total<min.records) {
+    note=paste(note,"[Error: <",min.records," complete records]")
+  } else if(length(unique(na.omit(d[,phe])))<=1 | length(unique(na.omit(d[,gen]))) <=1) {
     note=paste(note,"[Error: non-varying phenotype or genotype]")
   } else {
     if(additive.genotypes) {
-      if(class(d[,gen]) %in% c("numeric","integer") & (sum(!(na.omit(d[,gen]) %in% 0:2))==0)) {
+      if(class(d[,gen]) %in% c("numeric","integer")){
         allele_freq=sum(d[,gen])/(2*n_total)
+      }
+      if(class(d[,gen]) %in% c("numeric","integer") & sum(!(na.omit(d[,gen]) %in% 0:2))==0) {
         P=allele_freq
         Q=1-allele_freq
         AA=sum(d[,gen]==2)
@@ -96,12 +101,35 @@ function(phe.gen, additive.genotypes=T,min.records=20,return.models=F, my.data, 
   }
   output=data.frame(phenotype=phe_o,snp=gens,
                     adjustment=adjustment,
-                    beta=beta,
-                    OR=or, SE=se,
+                    beta=beta, SE=se,
+                    OR=or,
                     p=p, type=type,
                     n_total=n_total, n_cases=n_cases, n_controls=n_controls,
                     HWE_p=HWE_pval,allele_freq=allele_freq,n_no_snp=n_no_snp, 
                     note=note, stringsAsFactors=F)
+
+  #Add confidence intervals if requested.
+  if(!is.na(confint.level)) {
+    if(!is.na(model)[1]){
+      suppressMessages(conf<-confint(model,c("(Intercept)",gens),level=confint.level))
+      lower=conf[-1,1]
+      upper=conf[-1,2]
+      if(type=="logistic") {
+        lower=exp(lower)
+        upper=exp(upper)
+      }
+    } else {
+      lower=NA_real_
+      upper=NA_real_
+    }
+    output$lower=lower
+    output$upper=upper
+    
+    output=output[,c("phenotype","snp","adjustment","beta","SE",
+                                "lower","upper","OR","p","type",
+                                "n_total","n_cases","n_controls",
+                                "HWE_p","allele_freq","n_no_snp","note")]
+  }
   
   #If the complete models were requested, add them as well.
   if(return.models) {attributes(output)$model=model}
